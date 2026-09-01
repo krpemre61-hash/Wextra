@@ -8,188 +8,44 @@ on:
 
 jobs:
   build:
+    name: APK oluştur
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set up job
+        uses: actions/checkout@v4
+
       - name: Node.js kur
         uses: actions/setup-node@v4
         with:
           node-version: 20
+          cache: npm
 
-      - name: Wextra Expo projesi oluştur
-        run: |
-          npx create-expo-app@latest Wextra --template blank
+      - name: Bağımlılıkları kur
+        run: npm install
 
-      - name: Wextra arayüzünü oluştur
-        run: |
-          cd Wextra
+      - name: Expo Android projesini hazırla
+        run: npx expo prebuild --platform android --non-interactive
 
-          cat > App.js <<'EOF'
-          import React from 'react';
-          import { View, Text, StyleSheet, SafeAreaView } from 'react-native';
+      - name: Java kur
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
 
-          export default function App() {
-            return (
-              <SafeAreaView style={styles.container}>
-                <View style={styles.header}>
-                  <Text style={styles.logo}>Wextra</Text>
-                  <Text style={styles.search}>⌕</Text>
-                </View>
+      - name: Android SDK hazırla
+        uses: android-actions/setup-android@v3
 
-                <View style={styles.hero}>
-                  <Text style={styles.heroTitle}>Doğayı Keşfet</Text>
-                  <Text style={styles.heroText}>
-                    En güzel duvar kağıtlarını keşfet
-                  </Text>
-                </View>
-
-                <Text style={styles.section}>Kategoriler</Text>
-
-                <View style={styles.categories}>
-                  <View style={styles.category}>
-                    <Text style={styles.icon}>🌿</Text>
-                    <Text>Doğa</Text>
-                  </View>
-
-                  <View style={styles.category}>
-                    <Text style={styles.icon}>🚗</Text>
-                    <Text>Araba</Text>
-                  </View>
-
-                  <View style={styles.category}>
-                    <Text style={styles.icon}>🌆</Text>
-                    <Text>Şehir</Text>
-                  </View>
-
-                  <View style={styles.category}>
-                    <Text style={styles.icon}>🪐</Text>
-                    <Text>Uzay</Text>
-                  </View>
-                </View>
-
-                <Text style={styles.section}>Popüler</Text>
-
-                <View style={styles.card}>
-                  <Text style={styles.wallpaper}>🏔️</Text>
-                  <Text style={styles.cardTitle}>Dağ Manzarası</Text>
-                  <Text style={styles.cardText}>3840 × 2160</Text>
-                </View>
-
-                <View style={styles.bottom}>
-                  <Text>⌂ Ana Sayfa</Text>
-                  <Text>▦ Kategoriler</Text>
-                  <Text>♡ Favoriler</Text>
-                  <Text>♙ Profil</Text>
-                </View>
-              </SafeAreaView>
-            );
-          }
-
-          const styles = StyleSheet.create({
-            container: {
-              flex: 1,
-              backgroundColor: '#070b10',
-              padding: 20,
-            },
-            header: {
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginTop: 15,
-            },
-            logo: {
-              color: '#a855f7',
-              fontSize: 32,
-              fontWeight: 'bold',
-            },
-            search: {
-              color: 'white',
-              fontSize: 32,
-            },
-            hero: {
-              marginTop: 30,
-              padding: 25,
-              borderRadius: 20,
-              backgroundColor: '#18202c',
-            },
-            heroTitle: {
-              color: 'white',
-              fontSize: 25,
-              fontWeight: 'bold',
-            },
-            heroText: {
-              color: '#b8c0cc',
-              fontSize: 16,
-              marginTop: 8,
-            },
-            section: {
-              color: 'white',
-              fontSize: 20,
-              fontWeight: 'bold',
-              marginTop: 25,
-              marginBottom: 15,
-            },
-            categories: {
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-            },
-            category: {
-              backgroundColor: '#151b24',
-              borderRadius: 15,
-              padding: 12,
-              alignItems: 'center',
-              width: '23%',
-            },
-            icon: {
-              fontSize: 25,
-              marginBottom: 7,
-            },
-            card: {
-              backgroundColor: '#151b24',
-              borderRadius: 20,
-              padding: 15,
-            },
-            wallpaper: {
-              fontSize: 100,
-              textAlign: 'center',
-              padding: 25,
-            },
-            cardTitle: {
-              color: 'white',
-              fontSize: 20,
-              fontWeight: 'bold',
-            },
-            cardText: {
-              color: '#9ca3af',
-              marginTop: 5,
-            },
-            bottom: {
-              position: 'absolute',
-              bottom: 20,
-              left: 20,
-              right: 20,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              backgroundColor: '#111820',
-              padding: 18,
-              borderRadius: 18,
-            },
-          });
-          EOF
-
-      - name: Android projesi oluştur
-        run: |
-          cd Wextra
-          npx expo prebuild --platform android --non-interactive
+      - name: Gradle izinlerini ayarla
+        run: chmod +x android/gradlew
 
       - name: APK oluştur
-        run: |
-          cd Wextra/android
-          chmod +x gradlew
-          ./gradlew assembleDebug
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: APK yükle
         uses: actions/upload-artifact@v4
         with:
-          name: Wextra-debug-apk
-          path: Wextra/android/app/build/outputs/apk/debug/app-debug.apk
+          name: Wextra-APK
+          path: android/app/build/outputs/apk/release/*.apk
+          if-no-files-found: error
