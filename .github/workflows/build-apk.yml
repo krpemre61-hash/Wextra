@@ -19,25 +19,35 @@ jobs:
         with:
           node-version: 20
 
+      - name: ZIP'i aç
+        run: |
+          mkdir -p project
+          unzip -o WextraApp.zip -d project
+
+      - name: Proje klasörünü bul
+        run: |
+          PROJECT_DIR=$(find project -name package.json -type f -printf '%h\n' | head -n 1)
+
+          if [ -z "$PROJECT_DIR" ]; then
+            echo "HATA: ZIP içinde package.json bulunamadı!"
+            exit 1
+          fi
+
+          echo "Proje bulundu: $PROJECT_DIR"
+          echo "PROJECT_DIR=$PROJECT_DIR" >> $GITHUB_ENV
+
       - name: Bağımlılıkları kur
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           npm install
 
       - name: Expo Android projesini hazırla
+        working-directory: ${{ env.PROJECT_DIR }}
         run: |
           npx expo prebuild --platform android --non-interactive
 
-      - name: Java kur
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Android SDK hazırla
-        uses: android-actions/setup-android@v3
-
       - name: APK oluştur
-        working-directory: android
+        working-directory: ${{ env.PROJECT_DIR }}/android
         run: |
           chmod +x gradlew
           ./gradlew assembleRelease
@@ -46,4 +56,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Wextra-APK
-          path: android/app/build/outputs/apk/release/*.apk
+          path: ${{ env.PROJECT_DIR }}/android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
