@@ -8,44 +8,42 @@ on:
 
 jobs:
   build:
-    name: APK oluştur
     runs-on: ubuntu-latest
 
     steps:
-      - name: Set up job
+      - name: Kodu indir
         uses: actions/checkout@v4
 
       - name: Node.js kur
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
 
       - name: Bağımlılıkları kur
-        run: npm install
+        run: |
+          npm install
 
       - name: Expo Android projesini hazırla
-        run: npx expo prebuild --platform android --non-interactive
+        run: |
+          npx expo prebuild --platform android --non-interactive
 
       - name: Java kur
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
+          java-version: '17'
 
       - name: Android SDK hazırla
         uses: android-actions/setup-android@v3
 
-      - name: Gradle izinlerini ayarla
-        run: chmod +x android/gradlew
-
       - name: APK oluştur
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease
 
       - name: APK yükle
         uses: actions/upload-artifact@v4
         with:
           name: Wextra-APK
           path: android/app/build/outputs/apk/release/*.apk
-          if-no-files-found: error
